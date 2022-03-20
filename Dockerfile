@@ -17,7 +17,7 @@ ENV CGO_ENABLED=0
 # Use Go modules
 ENV GO111MODULE=on
 
-WORKDIR /go/src/go.jlucktay.dev/template-go
+WORKDIR /go/src/go.jlucktay.dev/playstation-share-dedupe
 
 # Add the sources.
 COPY . .
@@ -26,16 +26,16 @@ COPY . .
 # https://github.com/golang/go/issues/27719#issuecomment-514747274
 RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
-  go build -ldflags="-X 'go.jlucktay.dev/version.builtBy=Docker'" -trimpath -v -o /bin/template-go
+  go build -ldflags="-X 'go.jlucktay.dev/version.builtBy=Docker'" -trimpath -v -o /bin/playstation-share-dedupe
 
 FROM scratch AS runner
 
 # Bring common CA certificates and binary over.
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /bin/template-go /bin/template-go
+COPY --from=builder /bin/playstation-share-dedupe /bin/playstation-share-dedupe
 
 VOLUME /workdir
 WORKDIR /workdir
 
-ENTRYPOINT [ "/bin/template-go" ]
+ENTRYPOINT [ "/bin/playstation-share-dedupe" ]
 CMD [ "--help" ]

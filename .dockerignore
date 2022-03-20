@@ -6,7 +6,7 @@
 
 # Build and binary files
 Dockerfile
-template-go
+playstation-share-dedupe
 
 # Makefile things
 /out/

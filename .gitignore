@@ -27,7 +27,7 @@
 # Builds and binaries
 /bin/
 /dist/
-template-go
+playstation-share-dedupe
 
 # Makefile things
 /out/

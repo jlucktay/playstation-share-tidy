@@ -1,4 +1,4 @@
-module go.jlucktay.dev/template-go
+module go.jlucktay.dev/playstation-share-dedupe
 
 go 1.16
 
