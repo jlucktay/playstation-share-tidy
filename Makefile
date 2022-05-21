@@ -66,6 +66,17 @@ help:
   | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 .PHONY: help
 
+# Set up some lazy initialisation functions to find code files, so that targets using the output of '$(shell ...)' only
+# execute their respective shell commands when they need to, rather than every single instance of '$(shell ...)' being
+# executed every single time 'make' is run for any target and wasting a lot of time.
+# Further reading at https://www.oreilly.com/library/view/managing-projects-with/0596006101/ch10.html under the 'Lazy
+# Initialization' heading.
+find-go-files = $(shell find $1 -name vendor -prune -or -type f \( -iname '*.go' -or -name go.mod -or -name go.sum \))
+
+GO_FILES = $(redefine-go-files) $(GO_FILES)
+
+redefine-go-files = $(eval GO_FILES := $(call find-go-files, .))
+
 # Tests look for sentinel files to determine whether or not they need to be run again.
 # If any Go code file has been changed since the sentinel file was last touched, it will trigger a retest.
 test: tmp/.tests-passed.sentinel ## Run tests.
@@ -101,17 +112,17 @@ clean-all: clean clean-docker ## Clean all of the things.
 .PHONY: clean-all
 
 # Tests - re-run if any Go files have changes since 'tmp/.tests-passed.sentinel' was last touched.
-tmp/.tests-passed.sentinel: $(shell find . -type f -iname "*.go") go.mod go.sum
+tmp/.tests-passed.sentinel: $(GO_FILES)
 > mkdir -p $(@D)
 > go test -v ./...
 > touch $@
 
-tmp/.cover-tests-passed.sentinel: $(shell find . -type f -iname "*.go") go.mod go.sum
+tmp/.cover-tests-passed.sentinel: $(GO_FILES)
 > mkdir -p $(@D)
 > go test -count=1 -covermode=atomic -coverprofile=cover.out -race -v ./...
 > touch $@
 
-tmp/.benchmarks-ran.sentinel: $(shell find . -type f -iname "*.go") go.mod go.sum
+tmp/.benchmarks-ran.sentinel: $(GO_FILES)
 > mkdir -p $(@D)
 > go test -bench=. -benchmem -benchtime=10s -run='^DoNotRunTests$$' -v ./...
 > touch $@
@@ -126,7 +137,7 @@ tmp/.linted.sentinel: tmp/.linted.docker.sentinel tmp/.linted.gofmt.sentinel tmp
 tmp/.linted.docker.sentinel: Dockerfile .hadolint.yaml
 > mkdir -p $(@D)
 > docker run --env=XDG_CONFIG_HOME=/etc --interactive --pull=always --rm \
-  --volume="$(shell pwd)/.hadolint.yaml:/etc/hadolint.yaml:ro" hadolint/hadolint hadolint --verbose - < Dockerfile
+  --volume="$$(pwd)/.hadolint.yaml:/etc/hadolint.yaml:ro" hadolint/hadolint hadolint --verbose - < Dockerfile
 > touch $@
 
 tmp/.linted.gofmt.sentinel: tmp/.tests-passed.sentinel
@@ -142,8 +153,10 @@ tmp/.linted.go.vet.sentinel: tmp/.tests-passed.sentinel
 
 tmp/.linted.golangci-lint.sentinel: .golangci.yaml tmp/.tests-passed.sentinel
 > mkdir -p $(@D)
-> docker run --env=XDG_CACHE_HOME=/go/cache --interactive --pull=always --rm --volume="$(shell pwd):/app:ro" \
-  --volume=golangci-lint-cache-$(subst /,_,$(image_repository)):/go --workdir=/app \
+> lint_flags=()
+> if [[ -t 0 ]]; then lint_flags+=("--tty"); fi
+> docker run --env=XDG_CACHE_HOME=/go/cache --interactive --pull=always --rm --volume="$$(pwd):/app:ro" \
+  --volume=golangci-lint-cache-$(subst /,_,$(image_repository)):/go --workdir=/app $${lint_flags[*]} \
   golangci/golangci-lint golangci-lint run --verbose
 > touch $@
 
@@ -154,7 +167,7 @@ gofmt: ## Runs 'gofmt -s' to format and simplify all Go code.
 # Docker image - re-build if the lint output is re-run (and so, by proxy, whenever the source files have changed).
 out/image-id: Dockerfile tmp/.linted.sentinel
 > mkdir -p $(@D)
-> image_id="$(image_repository):$(shell uuidgen)"
+> image_id="$(image_repository):$$(uuidgen)"
 > DOCKER_BUILDKIT=1 docker build --tag="$${image_id}" .
 > echo "$${image_id}" > out/image-id
 
