@@ -22,6 +22,8 @@ linters-settings:
 
   gci:
     sections:
+      - standard
+      - default
       - prefix(go.jlucktay.dev/playstation-share-dedupe)
 
   goconst:

@@ -1,7 +1,7 @@
 package dedupe_test
 
 import (
-	"errors" //nolint:gci // bugged
+	"errors"
 	"io/fs"
 	"testing"
 
