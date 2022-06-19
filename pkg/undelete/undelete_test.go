@@ -8,7 +8,7 @@ import (
 	"go.jlucktay.dev/playstation-share-dedupe/pkg/undelete"
 )
 
-func TestUndeleteFailsWhenTargetDirectoryMisnamed(t *testing.T) {
+func TestDiscoverFailsWhenTargetDirectoryMisnamed(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
@@ -19,7 +19,7 @@ func TestUndeleteFailsWhenTargetDirectoryMisnamed(t *testing.T) {
 	is.Equal(err, undelete.ErrTargetDirectoryMisnomer) // unexpected error
 }
 
-func TestUndeleteSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
+func TestDiscoverSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
@@ -30,7 +30,7 @@ func TestUndeleteSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
 	is.NoErr(err) // unexpected error
 }
 
-func TestUndeleteFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
+func TestDiscoverFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
@@ -42,7 +42,7 @@ func TestUndeleteFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
 	is.Equal(len(names), 0)
 }
 
-func TestUndeleteFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) {
+func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
