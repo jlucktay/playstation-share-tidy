@@ -1,6 +1,10 @@
 package undelete_test
 
 import (
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/matryer/is"
@@ -63,6 +67,31 @@ func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) 
 	is.Equal(names[2], "DEATH STRANDING DIRECTOR'S CUT")
 }
 
+func TestDiscoverErrorOnUnreadableDirectory(t *testing.T) {
+	// Arrange
+	is := is.New(t)
+
+	// Should switch from t.TempDir to afero.MemMapFs once these issues are resolved: //nolint:godox
+	// https://github.com/spf13/afero/issues/150
+	// https://github.com/spf13/afero/issues/335
+
+	tmpDir := filepath.Join(t.TempDir(), "Deleted Games and Apps")
+	is.NoErr(os.Mkdir(tmpDir, 0o700))
+	is.NoErr(os.WriteFile(filepath.Join(tmpDir, "unreachable_123.png"), []byte("unreachable"), 0o600))
+	is.NoErr(os.Chmod(tmpDir, 0o000))
+
+	// Act
+	org, err := undelete.New(nil, tmpDir)
+	is.NoErr(err)
+	_, err = org.DiscoverPrefixes()
+
+	// Assert
+	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
+
+	//// Prevent t.Cleanup from erroring when tidying up the directory that doesn't have any permissions
+	is.NoErr(os.Chmod(tmpDir, 0o700)) //nolint:gosec // Need to clean up a directory, not a file
+}
+
 func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 	// Arrange
 	is := is.New(t)
@@ -81,7 +110,8 @@ func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 
 	// Assert
 	for _, prefix := range []string{"Bugsnax", "Control Ultimate Edition", "DEATH STRANDING DIRECTOR'S CUT"} {
-		_, err := testFS.Stat("testdata/populated/" + prefix)
-		is.NoErr(err) // could not stat new sibling directory
+		dir, err := testFS.Stat(filepath.Join("testdata/populated", prefix))
+		is.NoErr(err)        // could not stat new sibling directory
+		is.True(dir.IsDir()) // sibling is not a directory
 	}
 }
