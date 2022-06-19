@@ -21,7 +21,7 @@ func TestNewFailsWhenTargetDirectoryMisnamed(t *testing.T) {
 	_, err := undelete.New(undelete.OptionPath("/misnamed/directory"))
 
 	// Assert
-	is.Equal(err, undelete.ErrTargetDirectoryMisnomer) // unexpected error
+	is.Equal(err, undelete.ErrTargetDirectoryMisnomer) // error different from expected
 }
 
 func TestNewSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
@@ -41,9 +41,11 @@ func TestNewSucceedsWhenCurrentDirectoryNamedCorrectly(t *testing.T) {
 
 	// Act
 	wd, err := os.Getwd()
-	is.NoErr(err)
-	t.Cleanup(func() { is.NoErr(os.Chdir(wd)) })
-	is.NoErr(os.Chdir("testdata/populated/Deleted Games and Apps"))
+	is.NoErr(err) // can't get working directory
+	t.Cleanup(func() {
+		is.NoErr(os.Chdir(wd)) // cleanup can't revert working directory
+	})
+	is.NoErr(os.Chdir("testdata/populated/Deleted Games and Apps")) // can't change working directory
 
 	_, err = undelete.New()
 
@@ -57,13 +59,13 @@ func TestDiscoverFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
 
 	// Act
 	o, err := undelete.New(undelete.OptionPath("testdata/unpopulated/Deleted Games and Apps"))
-	is.NoErr(err)
+	is.NoErr(err) // could not create new Organiser
 
 	names, err := o.Discover()
-	is.NoErr(err)
+	is.NoErr(err) // problem with discovery
 
 	// Assert
-	is.Equal(len(names), 0)
+	is.Equal(len(names), 0) // unpopulated testdata directory should be empty
 }
 
 func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) {
@@ -72,12 +74,12 @@ func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) 
 
 	// Act
 	org, err := undelete.New(undelete.OptionPath("testdata/populated/Deleted Games and Apps"))
-	is.NoErr(err)
+	is.NoErr(err) // could not create new Organiser
 	names, err := org.Discover()
-	is.NoErr(err)
+	is.NoErr(err) // problem with discovery
 
 	// Assert
-	is.Equal(len(names), 3)
+	is.Equal(len(names), 3) // populated testdata should have three files
 	is.Equal(names[0], "Bugsnax")
 	is.Equal(names[1], "Control Ultimate Edition")
 	is.Equal(names[2], "DEATH STRANDING DIRECTOR'S CUT")
@@ -92,20 +94,24 @@ func TestDiscoverErrorOnUnreadableDirectory(t *testing.T) {
 	// https://github.com/spf13/afero/issues/335
 
 	tmpDir := filepath.Join(t.TempDir(), "Deleted Games and Apps")
-	is.NoErr(os.Mkdir(tmpDir, 0o700))
-	is.NoErr(os.WriteFile(filepath.Join(tmpDir, "unreachable_123.png"), []byte("unreachable"), 0o600))
-	is.NoErr(os.Chmod(tmpDir, 0o000))
+	is.NoErr(os.Mkdir(tmpDir, 0o700)) // could not create new directory under temp
+	is.NoErr(os.WriteFile(filepath.Join(tmpDir, "unreachable_123.png"),
+		[]byte("unreachable"), 0o600)) // could not write file into temp directory
+	is.NoErr(os.Chmod(tmpDir, 0o000)) // could not change permissions on temp directory
+	t.Cleanup(func() {
+		//// Prevent t.Cleanup from erroring when tidying up the directory that doesn't have any permissions
+		is.NoErr(
+			os.Chmod(tmpDir, 0o700), //nolint:gosec // Need to clean up a directory, not a file
+		) // could not revert permissions on temp directory
+	})
 
 	// Act
 	org, err := undelete.New(undelete.OptionPath(tmpDir))
-	is.NoErr(err)
+	is.NoErr(err) // could not create new Organiser
 	_, err = org.Discover()
 
 	// Assert
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
-
-	//// Prevent t.Cleanup from erroring when tidying up the directory that doesn't have any permissions
-	is.NoErr(os.Chmod(tmpDir, 0o700)) //nolint:gosec // Need to clean up a directory, not a file
 }
 
 func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
@@ -121,11 +127,11 @@ func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 		undelete.OptionFilesystem(testFS),
 		undelete.OptionPath("testdata/populated/Deleted Games and Apps"),
 	)
-	is.NoErr(err)
+	is.NoErr(err) // could not create new Organiser
 	names, err := org.Discover()
-	is.NoErr(err)
+	is.NoErr(err) // problem with discovery
 	err = org.Create(names)
-	is.NoErr(err)
+	is.NoErr(err) // error while creating sibling directories
 
 	// Assert
 	for _, prefix := range []string{"Bugsnax", "Control Ultimate Edition", "DEATH STRANDING DIRECTOR'S CUT"} {
@@ -145,25 +151,29 @@ func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
 
 	parentTmpDir := t.TempDir()
 	tmpDir := filepath.Join(parentTmpDir, "Deleted Games and Apps")
-	is.NoErr(os.Mkdir(tmpDir, 0o700))
-	is.NoErr(os.WriteFile(filepath.Join(tmpDir, "prefix_123.png"), []byte("bytes"), 0o600))
+	is.NoErr(os.Mkdir(tmpDir, 0o700)) // could not create temp directory
+	is.NoErr(os.WriteFile(filepath.Join(tmpDir, "prefix_123.png"),
+		[]byte("bytes"), 0o600)) // problem writing file to temp directory
 
 	// Act
 	org, err := undelete.New(undelete.OptionPath(tmpDir))
-	is.NoErr(err)
+	is.NoErr(err) // could not create new Organiser
 	names, err := org.Discover()
-	is.NoErr(err)
-	is.Equal(len(names), 1)
+	is.NoErr(err)           // problem with discovery
+	is.Equal(len(names), 1) // should have discovered one prefix only
 	is.Equal(names[0], "prefix")
 
 	// Remove permissions from parent directory, under which sibling(s) would be created
-	is.NoErr(os.Chmod(parentTmpDir, 0o000))
+	is.NoErr(os.Chmod(parentTmpDir, 0o000)) // could not set permissions on parent temp directory
+	t.Cleanup(func() {
+		//// Prevent t.Cleanup from erroring when tidying up the directory that doesn't have any permissions
+		is.NoErr(
+			os.Chmod(parentTmpDir, 0o700), //nolint:gosec // Need to clean up a directory, not a file
+		) // could not revert permissions on temp directory
+	})
 
 	err = org.Create(names)
 
 	// Assert
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
-
-	//// Prevent t.Cleanup from erroring when tidying up the directory that doesn't have any permissions
-	is.NoErr(os.Chmod(parentTmpDir, 0o700)) //nolint:gosec // Need to clean up a directory, not a file
 }
