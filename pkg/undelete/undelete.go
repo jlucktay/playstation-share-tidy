@@ -5,7 +5,10 @@ package undelete
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 )
 
 var ErrTargetDirectoryMisnomer = errors.New("target directory is not named 'Deleted Games and Apps'")
@@ -16,5 +19,21 @@ func DiscoverPrefixes(targetDir string) ([]string, error) {
 		return nil, ErrTargetDirectoryMisnomer
 	}
 
-	return []string{"prefix"}, nil
+	files, err := os.ReadDir(targetDir)
+	if err != nil {
+		return nil, fmt.Errorf("could not read '%s': %w", targetDir, err)
+	}
+
+	discovered := make([]string, 0)
+
+	for _, file := range files {
+		if file.Type().IsDir() || strings.HasPrefix(file.Name(), ".") {
+			continue
+		}
+
+		splitFilename := strings.SplitN(file.Name(), "_", 2)
+		discovered = append(discovered, splitFilename[0])
+	}
+
+	return discovered, nil
 }
