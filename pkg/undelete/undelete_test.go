@@ -115,3 +115,36 @@ func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 		is.True(dir.IsDir()) // sibling is not a directory
 	}
 }
+
+func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
+	// Arrange
+	is := is.New(t)
+
+	// Should switch from t.TempDir to afero.MemMapFs once these issues are resolved: //nolint:godox
+	// https://github.com/spf13/afero/issues/150
+	// https://github.com/spf13/afero/issues/335
+
+	parentTmpDir := t.TempDir()
+	tmpDir := filepath.Join(parentTmpDir, "Deleted Games and Apps")
+	is.NoErr(os.Mkdir(tmpDir, 0o700))
+	is.NoErr(os.WriteFile(filepath.Join(tmpDir, "prefix_123.png"), []byte("bytes"), 0o600))
+
+	// Act
+	org, err := undelete.New(nil, tmpDir)
+	is.NoErr(err)
+	names, err := org.DiscoverPrefixes()
+	is.NoErr(err)
+	is.Equal(len(names), 1)
+	is.Equal(names[0], "prefix")
+
+	// Remove permissions from parent directory, under which sibling(s) would be created
+	is.NoErr(os.Chmod(parentTmpDir, 0o000))
+
+	err = org.Create(names)
+
+	// Assert
+	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
+
+	//// Prevent t.Cleanup from erroring when tidying up the directory that doesn't have any permissions
+	is.NoErr(os.Chmod(parentTmpDir, 0o700)) //nolint:gosec // Need to clean up a directory, not a file
+}
