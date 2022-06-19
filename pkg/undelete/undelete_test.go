@@ -177,3 +177,51 @@ func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
 	// Assert
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
 }
+
+func TestUndeleteMovesFilesToCorrectDestination(t *testing.T) {
+	// Arrange
+	is := is.New(t)
+
+	baseFS := afero.NewOsFs()
+	readonlyBase := afero.NewReadOnlyFs(baseFS)
+	testFS := afero.NewCopyOnWriteFs(readonlyBase, afero.NewMemMapFs())
+
+	// For the purposes of testing, we need to touch the test files so that they copy through to the in-memory overlay.
+	// This is due to the following:
+	// https://github.com/spf13/afero#copyonwritefs
+	// > Removing and Renaming files present only in the base layer is not currently permitted.
+	// > If a file is present in the base layer and the overlay, only the overlay will be removed/renamed.
+
+	for _, testFile := range []string{
+		"testdata/populated/Deleted Games and Apps/Bugsnax_20210717131548.jpg",
+		"testdata/populated/Deleted Games and Apps/Control Ultimate Edition_20210709205443.jpg",
+		"testdata/populated/Deleted Games and Apps/DEATH STRANDING DIRECTOR'S CUT_20210927062750.jpg",
+	} {
+		is.NoErr(afero.WriteFile(testFS, testFile, []byte("bump"), 0o644)) // could not bump test files in overlay FS
+	}
+
+	// Act
+	org, err := undelete.New(
+		undelete.OptionFilesystem(testFS),
+		undelete.OptionPath("testdata/populated/Deleted Games and Apps"),
+	)
+	is.NoErr(err)
+
+	names, err := org.Discover()
+	is.NoErr(err)
+
+	err = org.Create(names)
+	is.NoErr(err)
+
+	err = org.Undelete(names)
+
+	// Assert
+	is.NoErr(err)
+	_, err = testFS.Stat("testdata/populated/Bugsnax/Bugsnax_20210717131548.jpg")
+	is.NoErr(err) // image not at expected path
+	_, err = testFS.Stat("testdata/populated/Control Ultimate Edition/Control Ultimate Edition_20210709205443.jpg")
+	is.NoErr(err) // image not at expected path
+	_, err = testFS.Stat("testdata/populated/DEATH STRANDING DIRECTOR'S CUT/" +
+		"DEATH STRANDING DIRECTOR'S CUT_20210927062750.jpg")
+	is.NoErr(err) // image not at expected path
+}

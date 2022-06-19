@@ -94,3 +94,35 @@ func (o *Organiser) Create(siblings []string) error {
 
 	return nil
 }
+
+// Undelete moves the screenshots and video clips out of the 'Deleted Games and Apps' directory and into the
+// app/game-specific directories that would have been created by calling o.Create.
+func (o *Organiser) Undelete(siblings []string) error {
+	sourceFiles, err := afero.ReadDir(o.fs, o.basePath)
+	if err != nil {
+		return fmt.Errorf("could not read directory '%s': %w", o.basePath, err)
+	}
+
+	for _, sibling := range siblings {
+		destinationDir := filepath.Join(filepath.Dir(o.basePath), sibling)
+
+		prefixMatches := make([]string, 0)
+
+		for i := range sourceFiles {
+			if strings.HasPrefix(sourceFiles[i].Name(), sibling) {
+				prefixMatches = append(prefixMatches, sourceFiles[i].Name())
+			}
+		}
+
+		for j := range prefixMatches {
+			oldFilePath := filepath.Join(o.basePath, prefixMatches[j])
+			newFilePath := filepath.Join(destinationDir, prefixMatches[j])
+
+			if err := o.fs.Rename(oldFilePath, newFilePath); err != nil {
+				return fmt.Errorf("could not move file '%s': %w", oldFilePath, err)
+			}
+		}
+	}
+
+	return nil
+}
