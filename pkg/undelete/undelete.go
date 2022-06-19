@@ -13,15 +13,25 @@ import (
 
 var ErrTargetDirectoryMisnomer = errors.New("target directory is not named 'Deleted Games and Apps'")
 
-// DiscoverPrefixes will search the given target directory and return all of the app/game prefixes that it finds.
-func DiscoverPrefixes(targetDir string) ([]string, error) {
+// Organiser will organise media it finds under the given 'Deleted Games and Apps' directory.
+type Organiser struct {
+	basePath string
+}
+
+// New creates a new Organiser.
+func New(targetDir string) (*Organiser, error) {
 	if filepath.Base(targetDir) != "Deleted Games and Apps" {
 		return nil, ErrTargetDirectoryMisnomer
 	}
 
-	files, err := os.ReadDir(targetDir)
+	return &Organiser{basePath: targetDir}, nil
+}
+
+// DiscoverPrefixes will search the given target directory and return all of the app/game prefixes that it finds.
+func (o *Organiser) DiscoverPrefixes() ([]string, error) {
+	files, err := os.ReadDir(o.basePath)
 	if err != nil {
-		return nil, fmt.Errorf("could not read '%s': %w", targetDir, err)
+		return nil, fmt.Errorf("could not read '%s': %w", o.basePath, err)
 	}
 
 	discovered := make([]string, 0)
@@ -36,4 +46,9 @@ func DiscoverPrefixes(targetDir string) ([]string, error) {
 	}
 
 	return discovered, nil
+}
+
+// Create the given sibling directories alongside the originating 'Deleted Games and Apps' directory.
+func (o *Organiser) Create(siblings []string) error {
+	return nil
 }

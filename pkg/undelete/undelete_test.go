@@ -8,23 +8,23 @@ import (
 	"go.jlucktay.dev/playstation-share-dedupe/pkg/undelete"
 )
 
-func TestDiscoverFailsWhenTargetDirectoryMisnamed(t *testing.T) {
+func TestNewFailsWhenTargetDirectoryMisnamed(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
 	// Act
-	_, err := undelete.DiscoverPrefixes("/misnamed/directory")
+	_, err := undelete.New("/misnamed/directory")
 
 	// Assert
 	is.Equal(err, undelete.ErrTargetDirectoryMisnomer) // unexpected error
 }
 
-func TestDiscoverSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
+func TestNewSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
 	// Act
-	_, err := undelete.DiscoverPrefixes("testdata/populated/Deleted Games and Apps")
+	_, err := undelete.New("testdata/populated/Deleted Games and Apps")
 
 	// Assert
 	is.NoErr(err) // unexpected error
@@ -35,10 +35,13 @@ func TestDiscoverFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
 	is := is.New(t)
 
 	// Act
-	names, err := undelete.DiscoverPrefixes("testdata/unpopulated/Deleted Games and Apps")
+	o, err := undelete.New("testdata/unpopulated/Deleted Games and Apps")
+	is.NoErr(err)
+
+	names, err := o.DiscoverPrefixes()
+	is.NoErr(err)
 
 	// Assert
-	is.NoErr(err)
 	is.Equal(len(names), 0)
 }
 
@@ -47,10 +50,12 @@ func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) 
 	is := is.New(t)
 
 	// Act
-	names, err := undelete.DiscoverPrefixes("testdata/populated/Deleted Games and Apps")
+	org, err := undelete.New("testdata/populated/Deleted Games and Apps")
+	is.NoErr(err)
+	names, err := org.DiscoverPrefixes()
+	is.NoErr(err)
 
 	// Assert
-	is.NoErr(err)
 	is.Equal(len(names), 3)
 	is.Equal(names[0], "Bugsnax")
 	is.Equal(names[1], "Control Ultimate Edition")
