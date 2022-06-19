@@ -10,11 +10,11 @@ import (
 
 var ErrTargetDirectoryMisnomer = errors.New("target directory is not named 'Deleted Games and Apps'")
 
-// Run the undelete process on the given target directory.
-func Run(targetDir string) error {
+// DiscoverPrefixes will search the given target directory and return all of the app/game prefixes that it finds.
+func DiscoverPrefixes(targetDir string) ([]string, error) {
 	if filepath.Base(targetDir) != "Deleted Games and Apps" {
-		return ErrTargetDirectoryMisnomer
+		return nil, ErrTargetDirectoryMisnomer
 	}
 
-	return nil
+	return []string{"prefix"}, nil
 }

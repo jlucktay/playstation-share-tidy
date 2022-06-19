@@ -11,7 +11,7 @@ import (
 func TestUndeleteFailsWhenTargetDirectoryMisnamed(t *testing.T) {
 	is := is.New(t)
 
-	err := undelete.Run("/misnamed/directory")
+	_, err := undelete.DiscoverPrefixes("/misnamed/directory")
 
 	is.Equal(err, undelete.ErrTargetDirectoryMisnomer) // unexpected error
 }
@@ -19,7 +19,15 @@ func TestUndeleteFailsWhenTargetDirectoryMisnamed(t *testing.T) {
 func TestUndeleteSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
 	is := is.New(t)
 
-	err := undelete.Run("/a/b/c/Deleted Games and Apps")
+	_, err := undelete.DiscoverPrefixes("/a/b/c/Deleted Games and Apps")
 
 	is.NoErr(err) // unexpected error
+}
+
+func TestUndeleteFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) {
+	is := is.New(t)
+
+	names, err := undelete.DiscoverPrefixes("testdata/populated/Deleted Games and Apps")
+	is.NoErr(err)
+	is.True(len(names) > 0)
 }
