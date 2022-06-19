@@ -36,8 +36,8 @@ func New(targetFS afero.Fs, targetDir string) (*Organiser, error) {
 	}, nil
 }
 
-// DiscoverPrefixes will search the given target directory and return all of the app/game prefixes that it finds.
-func (o *Organiser) DiscoverPrefixes() ([]string, error) {
+// Discover will search the given target directory and return all of the app/game prefixes that it finds.
+func (o *Organiser) Discover() (prefixes []string, err error) {
 	files, err := afero.ReadDir(o.fs, o.basePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read '%s': %w", o.basePath, err)

@@ -43,7 +43,7 @@ func TestDiscoverFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
 	o, err := undelete.New(nil, "testdata/unpopulated/Deleted Games and Apps")
 	is.NoErr(err)
 
-	names, err := o.DiscoverPrefixes()
+	names, err := o.Discover()
 	is.NoErr(err)
 
 	// Assert
@@ -57,7 +57,7 @@ func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) 
 	// Act
 	org, err := undelete.New(nil, "testdata/populated/Deleted Games and Apps")
 	is.NoErr(err)
-	names, err := org.DiscoverPrefixes()
+	names, err := org.Discover()
 	is.NoErr(err)
 
 	// Assert
@@ -83,7 +83,7 @@ func TestDiscoverErrorOnUnreadableDirectory(t *testing.T) {
 	// Act
 	org, err := undelete.New(nil, tmpDir)
 	is.NoErr(err)
-	_, err = org.DiscoverPrefixes()
+	_, err = org.Discover()
 
 	// Assert
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
@@ -103,7 +103,7 @@ func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 	// Act
 	org, err := undelete.New(testFS, "testdata/populated/Deleted Games and Apps")
 	is.NoErr(err)
-	names, err := org.DiscoverPrefixes()
+	names, err := org.Discover()
 	is.NoErr(err)
 	err = org.Create(names)
 	is.NoErr(err)
@@ -132,7 +132,7 @@ func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
 	// Act
 	org, err := undelete.New(nil, tmpDir)
 	is.NoErr(err)
-	names, err := org.DiscoverPrefixes()
+	names, err := org.Discover()
 	is.NoErr(err)
 	is.Equal(len(names), 1)
 	is.Equal(names[0], "prefix")
