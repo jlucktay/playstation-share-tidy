@@ -18,7 +18,7 @@ func TestNewFailsWhenTargetDirectoryMisnamed(t *testing.T) {
 	is := is.New(t)
 
 	// Act
-	_, err := undelete.New(nil, "/misnamed/directory")
+	_, err := undelete.New(undelete.OptionPath("/misnamed/directory"))
 
 	// Assert
 	is.Equal(err, undelete.ErrTargetDirectoryMisnomer) // unexpected error
@@ -29,7 +29,23 @@ func TestNewSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
 	is := is.New(t)
 
 	// Act
-	_, err := undelete.New(nil, "testdata/populated/Deleted Games and Apps")
+	_, err := undelete.New(undelete.OptionPath("testdata/populated/Deleted Games and Apps"))
+
+	// Assert
+	is.NoErr(err) // unexpected error
+}
+
+func TestNewSucceedsWhenCurrentDirectoryNamedCorrectly(t *testing.T) {
+	// Arrange
+	is := is.New(t)
+
+	// Act
+	wd, err := os.Getwd()
+	is.NoErr(err)
+	t.Cleanup(func() { is.NoErr(os.Chdir(wd)) })
+	is.NoErr(os.Chdir("testdata/populated/Deleted Games and Apps"))
+
+	_, err = undelete.New()
 
 	// Assert
 	is.NoErr(err) // unexpected error
@@ -40,7 +56,7 @@ func TestDiscoverFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
 	is := is.New(t)
 
 	// Act
-	o, err := undelete.New(nil, "testdata/unpopulated/Deleted Games and Apps")
+	o, err := undelete.New(undelete.OptionPath("testdata/unpopulated/Deleted Games and Apps"))
 	is.NoErr(err)
 
 	names, err := o.Discover()
@@ -55,7 +71,7 @@ func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) 
 	is := is.New(t)
 
 	// Act
-	org, err := undelete.New(nil, "testdata/populated/Deleted Games and Apps")
+	org, err := undelete.New(undelete.OptionPath("testdata/populated/Deleted Games and Apps"))
 	is.NoErr(err)
 	names, err := org.Discover()
 	is.NoErr(err)
@@ -81,7 +97,7 @@ func TestDiscoverErrorOnUnreadableDirectory(t *testing.T) {
 	is.NoErr(os.Chmod(tmpDir, 0o000))
 
 	// Act
-	org, err := undelete.New(nil, tmpDir)
+	org, err := undelete.New(undelete.OptionPath(tmpDir))
 	is.NoErr(err)
 	_, err = org.Discover()
 
@@ -101,7 +117,10 @@ func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 	testFS := afero.NewCopyOnWriteFs(readonlyBase, afero.NewMemMapFs())
 
 	// Act
-	org, err := undelete.New(testFS, "testdata/populated/Deleted Games and Apps")
+	org, err := undelete.New(
+		undelete.OptionFilesystem(testFS),
+		undelete.OptionPath("testdata/populated/Deleted Games and Apps"),
+	)
 	is.NoErr(err)
 	names, err := org.Discover()
 	is.NoErr(err)
@@ -130,7 +149,7 @@ func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
 	is.NoErr(os.WriteFile(filepath.Join(tmpDir, "prefix_123.png"), []byte("bytes"), 0o600))
 
 	// Act
-	org, err := undelete.New(nil, tmpDir)
+	org, err := undelete.New(undelete.OptionPath(tmpDir))
 	is.NoErr(err)
 	names, err := org.Discover()
 	is.NoErr(err)

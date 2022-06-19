@@ -20,20 +20,45 @@ type Organiser struct {
 	basePath string
 }
 
-// New creates a new Organiser. If targetFS is given as 'nil' then the native OS will be used.
-func New(targetFS afero.Fs, targetDir string) (*Organiser, error) {
-	if targetFS == nil {
-		targetFS = afero.NewOsFs()
+// New creates a new Organiser.
+// If a target filesystem is not set with an option, the native OS will be used.
+func New(options ...func(*Organiser) error) (*Organiser, error) {
+	org := &Organiser{}
+
+	for _, option := range options {
+		if err := option(org); err != nil {
+			return nil, err
+		}
 	}
 
-	if filepath.Base(targetDir) != "Deleted Games and Apps" {
-		return nil, ErrTargetDirectoryMisnomer
+	if org.fs == nil {
+		org.fs = afero.NewOsFs()
 	}
 
-	return &Organiser{
-		basePath: filepath.Clean(targetDir),
-		fs:       targetFS,
-	}, nil
+	return org, nil
+}
+
+// OptionPath sets the base path for a new Organiser.
+func OptionPath(path string) func(*Organiser) error {
+	return func(org *Organiser) error {
+		if filepath.Base(path) != "Deleted Games and Apps" {
+			return ErrTargetDirectoryMisnomer
+		}
+
+		org.basePath = path
+
+		return nil
+	}
+}
+
+// OptionFilesystem overrides the filesystem that a new Organiser will operate on.
+// If this option is not set, the Organiser will fall back to the native OS.
+func OptionFilesystem(fs afero.Fs) func(*Organiser) error {
+	return func(org *Organiser) error {
+		org.fs = fs
+
+		return nil
+	}
 }
 
 // Discover will search the given target directory and return all of the app/game prefixes that it finds.
