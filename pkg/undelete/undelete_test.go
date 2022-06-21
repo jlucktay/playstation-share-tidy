@@ -215,3 +215,23 @@ func TestUndeleteMovesFilesToCorrectDestination(t *testing.T) {
 		"DEATH STRANDING DIRECTOR'S CUT_20210927062750.jpg")
 	is.NoErr(err) // image not at expected path
 }
+
+func TestSiblingsSliceUnaffected(t *testing.T) {
+	// Arrange
+	is := is.New(t)
+
+	org, err := undelete.New(undelete.OptionPath("testdata/populated/Deleted Games and Apps"))
+	is.NoErr(err)
+
+	// Act
+	names1 := org.GetNames()
+	is.True(len(names1) >= 1)
+
+	names1[0] = "my test string"
+
+	names2 := org.GetNames()
+	is.True(len(names2) >= 1)
+
+	// Assert
+	is.True(names2[0] != "my test string")
+}

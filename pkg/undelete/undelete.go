@@ -42,6 +42,10 @@ func New(options ...func(*Organiser) error) (*Organiser, error) {
 		org.basePath = wd
 	}
 
+	if filepath.Base(org.basePath) != "Deleted Games and Apps" {
+		return nil, ErrTargetDirectoryMisnomer
+	}
+
 	if org.fs == nil {
 		org.fs = afero.NewOsFs()
 	}
@@ -59,10 +63,6 @@ func New(options ...func(*Organiser) error) (*Organiser, error) {
 // OptionPath sets the base path for a new Organiser.
 func OptionPath(path string) func(*Organiser) error {
 	return func(org *Organiser) error {
-		if filepath.Base(path) != "Deleted Games and Apps" {
-			return ErrTargetDirectoryMisnomer
-		}
-
 		org.basePath = path
 
 		return nil
@@ -81,7 +81,10 @@ func OptionFilesystem(fs afero.Fs) func(*Organiser) error {
 
 // GetNames returns a list of all app/game name prefixes discovered in the 'Deleted Games and Apps' base directory.
 func (o *Organiser) GetNames() []string {
-	return o.siblings
+	duplicate := make([]string, len(o.siblings))
+	copy(duplicate, o.siblings)
+
+	return duplicate
 }
 
 // discover will search the given target directory and return all of the app/game prefixes that it finds.
