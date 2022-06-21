@@ -6,6 +6,7 @@ package undelete
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -18,6 +19,7 @@ var ErrTargetDirectoryMisnomer = errors.New("target directory is not named 'Dele
 type Organiser struct {
 	fs       afero.Fs
 	basePath string
+	siblings []string
 }
 
 // New creates a new Organiser.
@@ -31,9 +33,25 @@ func New(options ...func(*Organiser) error) (*Organiser, error) {
 		}
 	}
 
+	if org.basePath == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("could not get working directory: %w", err)
+		}
+
+		org.basePath = wd
+	}
+
 	if org.fs == nil {
 		org.fs = afero.NewOsFs()
 	}
+
+	prefixes, err := org.discover()
+	if err != nil {
+		return nil, err
+	}
+
+	org.siblings = prefixes
 
 	return org, nil
 }
@@ -61,8 +79,13 @@ func OptionFilesystem(fs afero.Fs) func(*Organiser) error {
 	}
 }
 
-// Discover will search the given target directory and return all of the app/game prefixes that it finds.
-func (o *Organiser) Discover() (prefixes []string, err error) {
+// GetNames returns a list of all app/game name prefixes discovered in the 'Deleted Games and Apps' base directory.
+func (o *Organiser) GetNames() []string {
+	return o.siblings
+}
+
+// discover will search the given target directory and return all of the app/game prefixes that it finds.
+func (o *Organiser) discover() (prefixes []string, err error) {
 	files, err := afero.ReadDir(o.fs, o.basePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read '%s': %w", o.basePath, err)
@@ -83,8 +106,8 @@ func (o *Organiser) Discover() (prefixes []string, err error) {
 }
 
 // Create the given sibling directories alongside the originating 'Deleted Games and Apps' directory.
-func (o *Organiser) Create(siblings []string) error {
-	for _, sibling := range siblings {
+func (o *Organiser) Create() error {
+	for _, sibling := range o.siblings {
 		create := filepath.Join(filepath.Dir(o.basePath), sibling)
 
 		if err := o.fs.Mkdir(create, 0o777); err != nil {
@@ -97,13 +120,13 @@ func (o *Organiser) Create(siblings []string) error {
 
 // Undelete moves the screenshots and video clips out of the 'Deleted Games and Apps' directory and into the
 // app/game-specific directories that would have been created by calling o.Create.
-func (o *Organiser) Undelete(siblings []string) error {
+func (o *Organiser) Undelete() error {
 	sourceFiles, err := afero.ReadDir(o.fs, o.basePath)
 	if err != nil {
 		return fmt.Errorf("could not read directory '%s': %w", o.basePath, err)
 	}
 
-	for _, sibling := range siblings {
+	for _, sibling := range o.siblings {
 		destinationDir := filepath.Join(filepath.Dir(o.basePath), sibling)
 
 		prefixMatches := make([]string, 0)

@@ -58,14 +58,11 @@ func TestDiscoverFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
 	is := is.New(t)
 
 	// Act
-	o, err := undelete.New(undelete.OptionPath("testdata/unpopulated/Deleted Games and Apps"))
+	org, err := undelete.New(undelete.OptionPath("testdata/unpopulated/Deleted Games and Apps"))
 	is.NoErr(err) // could not create new Organiser
 
-	names, err := o.Discover()
-	is.NoErr(err) // problem with discovery
-
 	// Assert
-	is.Equal(len(names), 0) // unpopulated testdata directory should be empty
+	is.Equal(len(org.GetNames()), 0) // unpopulated testdata directory should be empty
 }
 
 func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) {
@@ -75,8 +72,8 @@ func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) 
 	// Act
 	org, err := undelete.New(undelete.OptionPath("testdata/populated/Deleted Games and Apps"))
 	is.NoErr(err) // could not create new Organiser
-	names, err := org.Discover()
-	is.NoErr(err) // problem with discovery
+
+	names := org.GetNames()
 
 	// Assert
 	is.Equal(len(names), 3) // populated testdata should have three files
@@ -106,9 +103,7 @@ func TestDiscoverErrorOnUnreadableDirectory(t *testing.T) {
 	})
 
 	// Act
-	org, err := undelete.New(undelete.OptionPath(tmpDir))
-	is.NoErr(err) // could not create new Organiser
-	_, err = org.Discover()
+	_, err := undelete.New(undelete.OptionPath(tmpDir))
 
 	// Assert
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
@@ -128,9 +123,7 @@ func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 		undelete.OptionPath("testdata/populated/Deleted Games and Apps"),
 	)
 	is.NoErr(err) // could not create new Organiser
-	names, err := org.Discover()
-	is.NoErr(err) // problem with discovery
-	err = org.Create(names)
+	err = org.Create()
 	is.NoErr(err) // error while creating sibling directories
 
 	// Assert
@@ -158,8 +151,8 @@ func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
 	// Act
 	org, err := undelete.New(undelete.OptionPath(tmpDir))
 	is.NoErr(err) // could not create new Organiser
-	names, err := org.Discover()
-	is.NoErr(err)           // problem with discovery
+
+	names := org.GetNames()
 	is.Equal(len(names), 1) // should have discovered one prefix only
 	is.Equal(names[0], "prefix")
 
@@ -172,7 +165,7 @@ func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
 		) // could not revert permissions on temp directory
 	})
 
-	err = org.Create(names)
+	err = org.Create()
 
 	// Assert
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
@@ -207,13 +200,10 @@ func TestUndeleteMovesFilesToCorrectDestination(t *testing.T) {
 	)
 	is.NoErr(err)
 
-	names, err := org.Discover()
+	err = org.Create()
 	is.NoErr(err)
 
-	err = org.Create(names)
-	is.NoErr(err)
-
-	err = org.Undelete(names)
+	err = org.Undelete()
 
 	// Assert
 	is.NoErr(err)
