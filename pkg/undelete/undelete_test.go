@@ -231,3 +231,22 @@ func TestSiblingsSliceUnaffected(t *testing.T) {
 	// Assert
 	is.True(names2[0] != "my test string")
 }
+
+func TestUndeleteWithoutPrepareFails(t *testing.T) {
+	// Arrange
+	is := is.New(t)
+
+	org, err := undelete.New(undelete.Path("testdata/populated/Deleted Games and Apps"))
+	is.NoErr(err)
+
+	// Act
+	err = org.Undelete()
+
+	// Assert
+	is.True(err != nil) // error should not be nil
+
+	var target *os.LinkError
+
+	is.True(errors.As(err, &target)) // error should be of type *os.LinkError
+	is.Equal(target.Op, "rename")    // error operation should be 'rename'
+}
