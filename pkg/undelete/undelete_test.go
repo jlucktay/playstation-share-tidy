@@ -18,7 +18,7 @@ func TestNewFailsWhenTargetDirectoryMisnamed(t *testing.T) {
 	is := is.New(t)
 
 	// Act
-	_, err := undelete.New(undelete.OptionPath("/misnamed/directory"))
+	_, err := undelete.New(undelete.Path("/misnamed/directory"))
 
 	// Assert
 	is.Equal(err, undelete.ErrTargetDirectoryMisnomer) // error different from expected
@@ -29,7 +29,7 @@ func TestNewSucceedsWhenTargetDirectoryNamedCorrectly(t *testing.T) {
 	is := is.New(t)
 
 	// Act
-	_, err := undelete.New(undelete.OptionPath("testdata/populated/Deleted Games and Apps"))
+	_, err := undelete.New(undelete.Path("testdata/populated/Deleted Games and Apps"))
 
 	// Assert
 	is.NoErr(err) // unexpected error
@@ -58,7 +58,7 @@ func TestDiscoverFindsZeroPrefixesWhenTargetDirectoryIsEmpty(t *testing.T) {
 	is := is.New(t)
 
 	// Act
-	org, err := undelete.New(undelete.OptionPath("testdata/unpopulated/Deleted Games and Apps"))
+	org, err := undelete.New(undelete.Path("testdata/unpopulated/Deleted Games and Apps"))
 	is.NoErr(err) // could not create new Organiser
 
 	// Assert
@@ -70,7 +70,7 @@ func TestDiscoverFindsAtLeastOnePrefixWhenTargetDirectoryNotEmpty(t *testing.T) 
 	is := is.New(t)
 
 	// Act
-	org, err := undelete.New(undelete.OptionPath("testdata/populated/Deleted Games and Apps"))
+	org, err := undelete.New(undelete.Path("testdata/populated/Deleted Games and Apps"))
 	is.NoErr(err) // could not create new Organiser
 
 	names := org.GetNames()
@@ -103,13 +103,13 @@ func TestDiscoverErrorOnUnreadableDirectory(t *testing.T) {
 	})
 
 	// Act
-	_, err := undelete.New(undelete.OptionPath(tmpDir))
+	_, err := undelete.New(undelete.Path(tmpDir))
 
 	// Assert
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
 }
 
-func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
+func TestPrepareWillMakeOneDirectoryPerSibling(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
@@ -119,11 +119,11 @@ func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 
 	// Act
 	org, err := undelete.New(
-		undelete.OptionFilesystem(testFS),
-		undelete.OptionPath("testdata/populated/Deleted Games and Apps"),
+		undelete.Filesystem(testFS),
+		undelete.Path("testdata/populated/Deleted Games and Apps"),
 	)
 	is.NoErr(err) // could not create new Organiser
-	err = org.Create()
+	err = org.Prepare()
 	is.NoErr(err) // error while creating sibling directories
 
 	// Assert
@@ -134,11 +134,11 @@ func TestCreateWillMakeOneDirectoryPerSibling(t *testing.T) {
 	}
 }
 
-func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
+func TestPrepareErrorOnDirectoryPermissions(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
-	// Should switch from t.TempDir to afero.MemMapFs once these issues are resolved: //nolint:godox
+	// Should switch from t.TempDir to afero.MemMapFs once these issues are resolved:
 	// https://github.com/spf13/afero/issues/150
 	// https://github.com/spf13/afero/issues/335
 
@@ -149,7 +149,7 @@ func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
 		[]byte("bytes"), 0o600)) // problem writing file to temp directory
 
 	// Act
-	org, err := undelete.New(undelete.OptionPath(tmpDir))
+	org, err := undelete.New(undelete.Path(tmpDir))
 	is.NoErr(err) // could not create new Organiser
 
 	names := org.GetNames()
@@ -165,7 +165,7 @@ func TestCreateErrorOnDirectoryPermissions(t *testing.T) {
 		) // could not revert permissions on temp directory
 	})
 
-	err = org.Create()
+	err = org.Prepare()
 
 	// Assert
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
@@ -195,18 +195,14 @@ func TestUndeleteMovesFilesToCorrectDestination(t *testing.T) {
 
 	// Act
 	org, err := undelete.New(
-		undelete.OptionFilesystem(testFS),
-		undelete.OptionPath("testdata/populated/Deleted Games and Apps"),
+		undelete.Filesystem(testFS),
+		undelete.Path("testdata/populated/Deleted Games and Apps"),
 	)
 	is.NoErr(err)
-
-	err = org.Create()
-	is.NoErr(err)
-
-	err = org.Undelete()
+	is.NoErr(org.Prepare())
+	is.NoErr(org.Undelete())
 
 	// Assert
-	is.NoErr(err)
 	_, err = testFS.Stat("testdata/populated/Bugsnax/Bugsnax_20210717131548.jpg")
 	is.NoErr(err) // image not at expected path
 	_, err = testFS.Stat("testdata/populated/Control Ultimate Edition/Control Ultimate Edition_20210709205443.jpg")
@@ -220,7 +216,7 @@ func TestSiblingsSliceUnaffected(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
-	org, err := undelete.New(undelete.OptionPath("testdata/populated/Deleted Games and Apps"))
+	org, err := undelete.New(undelete.Path("testdata/populated/Deleted Games and Apps"))
 	is.NoErr(err)
 
 	// Act

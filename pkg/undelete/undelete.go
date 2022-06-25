@@ -60,8 +60,8 @@ func New(options ...func(*Organiser) error) (*Organiser, error) {
 	return org, nil
 }
 
-// OptionPath sets the base path for a new Organiser.
-func OptionPath(path string) func(*Organiser) error {
+// Path sets the base path for a new Organiser.
+func Path(path string) func(*Organiser) error {
 	return func(org *Organiser) error {
 		org.basePath = path
 
@@ -69,9 +69,9 @@ func OptionPath(path string) func(*Organiser) error {
 	}
 }
 
-// OptionFilesystem overrides the filesystem that a new Organiser will operate on.
+// Filesystem overrides the filesystem that a new Organiser will operate on.
 // If this option is not set, the Organiser will fall back to the native OS.
-func OptionFilesystem(fs afero.Fs) func(*Organiser) error {
+func Filesystem(fs afero.Fs) func(*Organiser) error {
 	return func(org *Organiser) error {
 		org.fs = fs
 
@@ -87,7 +87,7 @@ func (o *Organiser) GetNames() []string {
 	return duplicate
 }
 
-// discover will search the given target directory and return all of the app/game prefixes that it finds.
+// discover will search the Organiser's base path and return all of the app/game prefixes that it finds.
 func (o *Organiser) discover() (prefixes []string, err error) {
 	files, err := afero.ReadDir(o.fs, o.basePath)
 	if err != nil {
@@ -108,8 +108,9 @@ func (o *Organiser) discover() (prefixes []string, err error) {
 	return discovered, nil
 }
 
-// Create the given sibling directories alongside the originating 'Deleted Games and Apps' directory.
-func (o *Organiser) Create() error {
+// Prepare will create sibling directories for each discovered app/game name alongside the originating 'Deleted Games
+// and Apps' base path.
+func (o *Organiser) Prepare() error {
 	for _, sibling := range o.siblings {
 		create := filepath.Join(filepath.Dir(o.basePath), sibling)
 
@@ -122,7 +123,7 @@ func (o *Organiser) Create() error {
 }
 
 // Undelete moves the screenshots and video clips out of the 'Deleted Games and Apps' directory and into the
-// app/game-specific directories that would have been created by calling o.Create.
+// app/game-specific directories that would have been created by calling o.Prepare.
 func (o *Organiser) Undelete() error {
 	sourceFiles, err := afero.ReadDir(o.fs, o.basePath)
 	if err != nil {
