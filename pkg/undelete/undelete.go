@@ -24,13 +24,11 @@ type Organiser struct {
 
 // New creates a new Organiser.
 // If a target filesystem is not set with an option, the native OS will be used.
-func New(options ...func(*Organiser) error) (*Organiser, error) {
+func New(options ...func(*Organiser)) (*Organiser, error) {
 	org := &Organiser{}
 
 	for _, option := range options {
-		if err := option(org); err != nil {
-			return nil, err
-		}
+		option(org)
 	}
 
 	if org.basePath == "" {
@@ -61,21 +59,17 @@ func New(options ...func(*Organiser) error) (*Organiser, error) {
 }
 
 // Path sets the base path for a new Organiser.
-func Path(path string) func(*Organiser) error {
-	return func(org *Organiser) error {
+func Path(path string) func(*Organiser) {
+	return func(org *Organiser) {
 		org.basePath = path
-
-		return nil
 	}
 }
 
 // Filesystem overrides the filesystem that a new Organiser will operate on.
 // If this option is not set, the Organiser will fall back to the native OS.
-func Filesystem(fs afero.Fs) func(*Organiser) error {
-	return func(org *Organiser) error {
+func Filesystem(fs afero.Fs) func(*Organiser) {
+	return func(org *Organiser) {
 		org.fs = fs
-
-		return nil
 	}
 }
 
