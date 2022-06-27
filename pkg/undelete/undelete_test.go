@@ -288,3 +288,42 @@ func TestNewErrorsOnMissingWorkingDirectory(t *testing.T) {
 	is.Equal(target.Op, "open")      // error operation should be 'open'
 	is.Equal(target.Path, basePath)  // error path should match temp base path
 }
+
+func TestUndeleteCannotReadDirectory(t *testing.T) {
+	// Arrange
+	is := is.New(t)
+
+	tmp, err := os.MkdirTemp("testdata", "temporary")
+	is.NoErr(err) // can't create temp directory
+
+	t.Cleanup(func() {
+		is.NoErr(os.RemoveAll(tmp)) // cleanup can't remove temp directory
+	})
+
+	basePath := filepath.Join(tmp, "Deleted Games and Apps")
+
+	is.NoErr(os.MkdirAll(basePath, 0o750)) // can't create temp base path
+
+	org, err := undelete.New(undelete.Path(basePath))
+	is.NoErr(err)
+
+	is.NoErr(os.Chmod(basePath, 0o000)) // could not change permissions on temp base path
+	t.Cleanup(func() {
+		//// Prevent t.Cleanup from erroring when tidying up the directory that doesn't have any permissions
+		is.NoErr(
+			os.Chmod(basePath, 0o700), //nolint:gosec // Need to clean up a directory, not a file
+		) // could not revert permissions on temp base path
+	})
+
+	// Act
+	err = org.Undelete()
+
+	// Assert
+	is.True(err != nil)
+
+	var target *fs.PathError
+
+	is.True(errors.As(err, &target)) // error should be of type *fs.PathError
+	is.Equal(target.Op, "open")      // error operation should be 'open'
+	is.Equal(target.Path, basePath)  // error path should match temp base path
+}
