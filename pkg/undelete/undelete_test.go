@@ -258,7 +258,7 @@ func TestNewErrorsOnMissingWorkingDirectory(t *testing.T) {
 	wd, err := os.Getwd()
 	is.NoErr(err) // can't get working directory
 
-	tmp, err := os.MkdirTemp(filepath.Join(wd, "testdata"), "temporary")
+	tmp, err := os.MkdirTemp(filepath.Join(wd, "testdata"), t.Name()+"-temporary")
 	is.NoErr(err) // can't create temp directory
 
 	t.Cleanup(func() {
@@ -293,7 +293,7 @@ func TestUndeleteCannotReadDirectory(t *testing.T) {
 	// Arrange
 	is := is.New(t)
 
-	tmp, err := os.MkdirTemp("testdata", "temporary")
+	tmp, err := os.MkdirTemp("testdata", t.Name()+"-temporary")
 	is.NoErr(err) // can't create temp directory
 
 	t.Cleanup(func() {
