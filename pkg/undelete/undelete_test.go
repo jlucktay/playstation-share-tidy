@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/matryer/is"
@@ -247,8 +248,13 @@ func TestUndeleteWithoutPrepareFails(t *testing.T) {
 
 	var target *os.LinkError
 
-	is.True(errors.As(err, &target)) // error should be of type *os.LinkError
-	is.Equal(target.Op, "rename")    // error operation should be 'rename'
+	is.True(errors.As(err, &target))     // error should be of type *os.LinkError
+	is.Equal(target.Err, syscall.ENOENT) // no such file or directory
+	is.Equal(target.Op, "rename")        // operation should be 'rename'
+
+	is.Equal(target.New, "testdata/populated/Bugsnax/Bugsnax_20210717131548.jpg") // intended directory doesn't exist
+
+	is.Equal(target.Old, "testdata/populated/Deleted Games and Apps/Bugsnax_20210717131548.jpg") // path to original file
 }
 
 func TestNewErrorsOnMissingWorkingDirectory(t *testing.T) {
@@ -284,9 +290,10 @@ func TestNewErrorsOnMissingWorkingDirectory(t *testing.T) {
 
 	var target *fs.PathError
 
-	is.True(errors.As(err, &target)) // error should be of type *fs.PathError
-	is.Equal(target.Op, "open")      // error operation should be 'open'
-	is.Equal(target.Path, basePath)  // error path should match temp base path
+	is.True(errors.As(err, &target))     // error should be of type *fs.PathError
+	is.Equal(target.Err, syscall.ENOENT) // no such file or directory
+	is.Equal(target.Op, "open")          // operation should be 'open'
+	is.Equal(target.Path, basePath)      // path should match temp base path
 }
 
 func TestUndeleteCannotReadDirectory(t *testing.T) {
@@ -323,7 +330,8 @@ func TestUndeleteCannotReadDirectory(t *testing.T) {
 
 	var target *fs.PathError
 
-	is.True(errors.As(err, &target)) // error should be of type *fs.PathError
-	is.Equal(target.Op, "open")      // error operation should be 'open'
-	is.Equal(target.Path, basePath)  // error path should match temp base path
+	is.True(errors.As(err, &target))     // error should be of type *fs.PathError
+	is.Equal(target.Err, syscall.EACCES) // permission denied
+	is.Equal(target.Op, "open")          // operation should be 'open'
+	is.Equal(target.Path, basePath)      // path should match temp base path
 }
