@@ -172,6 +172,27 @@ func TestPrepareErrorOnDirectoryPermissions(t *testing.T) {
 	is.True(errors.Is(err, fs.ErrPermission)) // should get a 'permission denied' error
 }
 
+func TestPrepareErrorIfSiblingAlreadyExists(t *testing.T) {
+	// Arrange
+	is := is.New(t)
+
+	org, err := undelete.New(undelete.Path("testdata/sibling-already-exists/Deleted Games and Apps"))
+	is.NoErr(err) // could not create new Organiser
+
+	// Act
+	err = org.Prepare()
+
+	// Assert
+	is.True(err != nil) // org.Prepare should error here, as sibling already exists
+
+	var target *fs.PathError
+
+	is.True(errors.As(err, &target))                                 // error should be of type *fs.PathError
+	is.Equal(target.Err, syscall.EEXIST)                             // intended directory already exists
+	is.Equal(target.Op, "mkdir")                                     // operation should be 'mkdir'
+	is.Equal(target.Path, "testdata/sibling-already-exists/Bugsnax") // should match existing sibling path
+}
+
 func TestUndeleteMovesFilesToCorrectDestination(t *testing.T) {
 	// Arrange
 	is := is.New(t)
