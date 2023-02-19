@@ -1,6 +1,6 @@
 module go.jlucktay.dev/playstation-share-dedupe
 
-go 1.17
+go 1.20
 
 require (
 	github.com/matryer/is v1.4.0
