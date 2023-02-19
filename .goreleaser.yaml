@@ -59,10 +59,10 @@ brews:
     # Caveats for the user of your binary.
     caveats: |
       Please see the README for usage instructions:
-      https://github.com/jlucktay/template-go/blob/main/README.md
+      https://github.com/jlucktay/playstation-share-dedupe/blob/main/README.md
 
     # Your app's homepage.
-    homepage: https://github.com/jlucktay/template-go
+    homepage: https://github.com/jlucktay/playstation-share-dedupe
 
     # Template of your app's description.
     description: |
@@ -90,13 +90,13 @@ brews:
 
     # So you can `brew test` your formula.
     test: |
-      system "#{bin}/template-go"
+      system "#{bin}/playstation-share-dedupe"
 
     # # Custom install script for brew.
     # install: |
-    #   bin.install "template-go"
-    #   output = Utils.popen_read("#{bin}/template-go completion bash")
-    #   (bash_completion/"template-go").write output
+    #   bin.install "playstation-share-dedupe"
+    #   output = Utils.popen_read("#{bin}/playstation-share-dedupe completion bash")
+    #   (bash_completion/"playstation-share-dedupe").write output
     #   prefix.install_metafiles
 
 changelog:
