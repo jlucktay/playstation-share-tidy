@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/matryer/is v1.4.0
-	github.com/spf13/afero v1.8.2
+	github.com/spf13/afero v1.9.3
 	go.jlucktay.dev/version v0.3.0
 )
 
