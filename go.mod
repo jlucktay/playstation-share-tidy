@@ -8,4 +8,4 @@ require (
 	go.jlucktay.dev/version v0.3.0
 )
 
-require golang.org/x/text v0.3.4 // indirect
+require golang.org/x/text v0.3.8 // indirect
