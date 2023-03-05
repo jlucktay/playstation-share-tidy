@@ -1,6 +1,7 @@
 issues:
   exclude-use-default: false
   exclude:
+    # Don't expect godocs on exported static errors.
     - "^exported: exported var Err[A-Za-z]+ should have comment or be unexported$"
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -24,6 +25,7 @@ linters-settings:
     sections:
       - standard
       - default
+      - prefix(go.jlucktay.dev)
       - prefix(go.jlucktay.dev/playstation-share-dedupe)
 
   goconst:
@@ -91,7 +93,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
     - dogsled
     - dupl
     - errcheck
@@ -116,13 +117,11 @@ linters:
     - nolintlint
     - revive
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
     - wrapcheck
     - wsl

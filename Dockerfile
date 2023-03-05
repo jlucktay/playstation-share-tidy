@@ -1,16 +1,15 @@
-FROM --platform=$BUILDPLATFORM golang:1.17 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.20 AS builder
 ARG TARGETOS TARGETARCH
 
 # Set some shell options for using pipes and such.
 SHELL [ "/bin/bash", "-euo", "pipefail", "-c" ]
 
-# Copy nessesary 'go.mod' and 'go.sum' files for separate Go module downloads.
+# Copy necessary 'go.mod' and 'go.sum' files for separate Go module downloads.
 WORKDIR /go/src/go.jlucktay.dev/playstation-share-dedupe
 COPY go.* .
 
-# Switch into component directory and download Go modules.
-# This is done in a separate step before adding the source code, to prevent invalidation of cached Go modules if only
-# our source code is changed and not any dependencies.
+# Download Go modules in a separate step before adding the source code, to prevent invalidation of cached Go modules if
+# only our source code is changed and not any dependencies.
 RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
   GOOS=$TARGETOS GOARCH=$TARGETARCH go mod download
 

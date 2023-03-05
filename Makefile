@@ -4,7 +4,7 @@
 # - https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
 # Default - top level rule is what gets run when you run just 'make' without specifying a goal/target.
-.DEFAULT_GOAL := build
+.DEFAULT_GOAL := help
 
 # Make will delete the target of a rule if it has changed and its recipe exits with a nonzero exit status, just as it
 # does when it receives a signal.
@@ -60,10 +60,14 @@ all: test lint build ## Test and lint and build.
 binary_name := $(shell basename $(CURDIR))
 image_repository := jlucktay/$(binary_name)
 
-# Adjust the width of the first column by changing the '-20s' value in the printf pattern.
-help:
-> @grep -E '^[a-zA-Z0-9_-]+:.*? ## .*$$' $(filter-out .env, $(MAKEFILE_LIST)) | sort \
-  | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+# Adjust the width of the first column by changing the '-25s' value in the HELP_FORMAT variable.
+HELP_FORMAT="  \033[36m%-25s\033[0m %s\n"
+help: ## Display this usage information.
+> @echo "Valid targets:"
+> @grep -E '^[^ ]+:.*?## .*$$' $(filter-out .env, $(MAKEFILE_LIST)) \
+  | sort \
+  | awk 'BEGIN { FS = ":.*?## " }; \
+    { printf $(HELP_FORMAT), $$1, $$2 }'
 .PHONY: help
 
 # Set up some lazy initialisation functions to find code files, so that targets using the output of '$(shell ...)' only
@@ -82,33 +86,36 @@ redefine-go-files = $(eval GO_FILES := $(call find-go-files, .))
 test: tmp/.tests-passed.sentinel ## Run tests.
 test-cover: tmp/.cover-tests-passed.sentinel ## Run all tests with the race detector and output a coverage profile.
 bench: tmp/.benchmarks-ran.sentinel ## Run enough iterations of each benchmark to take ten seconds each.
+.PHONY: test test-cover bench
 
 # Linter checks look for sentinel files to determine whether or not they need to check again.
 # If any Go code file has been changed since the sentinel file was last touched, it will trigger a rerun.
 lint: tmp/.linted.sentinel ## Lint the Dockerfile and all of the Go code. Will also test.
+.PHONY: lint
 
 # Builds look for image ID files to determine whether or not they need to build again.
 # If any Go code file has been changed since the image ID file was last touched, it will trigger a rebuild.
-build: out/image-id ## [DEFAULT] Build the Docker image. Will also test and lint.
-
+build: out/image-id ## Build the Docker image. Will also test and lint.
 build-binary: $(binary_name) ## Build a bare binary only, without a Docker image wrapped around it.
+.PHONY: build build-binary
 
-.PHONY: all test test-cover bench lint build build-binary
-
-clean: ## Clean up the built binary, test coverage, and the temp and output sub-directories.
+clean: ## Clean up any build output, test coverage, and the temp and output sub-directories.
 > go clean -x -v
 > rm -rf cover.out tmp out
 .PHONY: clean
 
-clean-docker: ## Clean up any local built Docker images and the volume used for caching golangci-lint.
+clean-docker: ## Clean up any local built Docker images.
 > docker images \
   --filter=reference=$(image_repository) \
   --no-trunc --quiet | sort --ignore-case --unique | xargs -n 1 docker rmi --force
-> docker volume rm golangci-lint-cache-$(subst /,_,$(image_repository)) || true
 > rm -f out/image-id
 .PHONY: clean-docker
 
-clean-all: clean clean-docker ## Clean all of the things.
+clean-hack: ## Deletes all binaries under 'hack'.
+> rm -rf hack/bin
+.PHONY: clean-hack
+
+clean-all: clean clean-docker clean-hack ## Clean all of the things.
 .PHONY: clean-all
 
 # Tests - re-run if any Go files have changes since 'tmp/.tests-passed.sentinel' was last touched.
@@ -127,6 +134,12 @@ tmp/.benchmarks-ran.sentinel: $(GO_FILES)
 > go test -bench=. -benchmem -benchtime=10s -run='^DoNotRunTests$$' -v ./...
 > touch $@
 
+hack/bin/golangci-lint:
+> mkdir -p $(@D)
+> curl --fail --location --show-error --silent \
+  https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+  | sh -s -- -b $(CURDIR)/hack/bin
+
 # Lint - re-run if the tests have been re-run (and so, by proxy, whenever the source files have changed).
 # These checks are all read-only and will not make any changes.
 tmp/.linted.sentinel: tmp/.linted.docker.sentinel tmp/.linted.gofmt.sentinel tmp/.linted.go.vet.sentinel \
@@ -134,10 +147,11 @@ tmp/.linted.sentinel: tmp/.linted.docker.sentinel tmp/.linted.gofmt.sentinel tmp
 > mkdir -p $(@D)
 > touch $@
 
-tmp/.linted.docker.sentinel: Dockerfile .hadolint.yaml
+tmp/.linted.docker.sentinel: Dockerfile
 > mkdir -p $(@D)
-> docker run --env=XDG_CONFIG_HOME=/etc --interactive --pull=always --rm \
-  --volume="$$(pwd)/.hadolint.yaml:/etc/hadolint.yaml:ro" hadolint/hadolint hadolint --verbose - < Dockerfile
+> if command -v hadolint &> /dev/null; then
+>   hadolint Dockerfile --verbose
+> fi
 > touch $@
 
 tmp/.linted.gofmt.sentinel: tmp/.tests-passed.sentinel
@@ -151,13 +165,9 @@ tmp/.linted.go.vet.sentinel: tmp/.tests-passed.sentinel
 > go vet ./...
 > touch $@
 
-tmp/.linted.golangci-lint.sentinel: .golangci.yaml tmp/.tests-passed.sentinel
+tmp/.linted.golangci-lint.sentinel: .golangci.yaml hack/bin/golangci-lint tmp/.tests-passed.sentinel
 > mkdir -p $(@D)
-> lint_flags=()
-> if [[ -t 0 ]]; then lint_flags+=("--tty"); fi
-> docker run --env=XDG_CACHE_HOME=/go/cache --interactive --pull=always --rm --volume="$$(pwd):/app:ro" \
-  --volume=golangci-lint-cache-$(subst /,_,$(image_repository)):/go --workdir=/app $${lint_flags[*]} \
-  golangci/golangci-lint golangci-lint run --verbose
+> hack/bin/golangci-lint run --verbose
 > touch $@
 
 gofmt: ## Runs 'gofmt -s' to format and simplify all Go code.

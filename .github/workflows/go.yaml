@@ -6,6 +6,7 @@ on:
       - v*
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -25,9 +26,9 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - "1.16"
-          - "1.17"
           - "1.18"
+          - "1.19"
+          - "1.20"
         platform:
           - ubuntu-latest
           - macos-latest
@@ -87,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out ${{ github.repository }} - all history
+      - name: Checkout ${{ github.repository }} - all history
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -97,15 +98,14 @@ jobs:
           git branch --all --contains '${{ github.ref }}' --no-column --format='%(refname)'
           | grep -c '\/main$'
 
-      - name: Set up Go 1.17
+      - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: "1.17"
+          go-version: "1.20"
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
           args: release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PUBLISH_HOMEBREW_TAPS }}
