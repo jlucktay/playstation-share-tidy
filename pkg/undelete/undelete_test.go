@@ -311,6 +311,11 @@ func TestNewErrorsOnMissingWorkingDirectory(t *testing.T) {
 
 	var target *fs.PathError
 
+	//
+	t.Logf("err: '%+v'", err)
+	t.Logf("err: '%#v'", err)
+	//
+
 	is.True(errors.As(err, &target))     // error should be of type *fs.PathError
 	is.Equal(target.Err, syscall.ENOENT) // no such file or directory
 	is.Equal(target.Op, "open")          // operation should be 'open'
