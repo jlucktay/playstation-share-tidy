@@ -314,6 +314,13 @@ func TestNewErrorsOnMissingWorkingDirectory(t *testing.T) {
 	//
 	t.Logf("err: '%+v'", err)
 	t.Logf("err: '%#v'", err)
+
+	uwe := err
+
+	for uwe = errors.Unwrap(uwe); uwe != nil; {
+		t.Logf("uwe: '%+v'", uwe)
+		t.Logf("uwe: '%#v'", uwe)
+	}
 	//
 
 	is.True(errors.As(err, &target))     // error should be of type *fs.PathError
