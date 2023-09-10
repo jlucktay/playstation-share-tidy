@@ -42,7 +42,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
 
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -89,7 +89,7 @@ jobs:
 
     steps:
       - name: Checkout ${{ github.repository }} - all history
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
